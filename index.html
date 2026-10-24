@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spoken Nursing Care Plan: Pre-Test & Post-Test Engine</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    .gradient-bg {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f2a4a 100%);
+    }
+  </style>
+</head>
+<body class="gradient-bg text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- HEADER -->
+  <header class="bg-slate-900/90 backdrop-blur border-b border-slate-700 sticky top-0 z-40 px-4 py-3 shadow-lg">
+    <div class="max-w-5xl mx-auto flex flex-wrap justify-between items-center gap-3">
+      <div>
+        <h1 class="text-xl md:text-2xl font-extrabold text-teal-400 tracking-wide">
+          🏥 Nursing Care Plan: Assessment Engine
+        </h1>
+        <p class="text-xs text-slate-400">Curriculum & Author: <span class="text-amber-300 font-semibold">Giyono Asfarrasyid</span></p>
+      </div>
+      <div id="userInfoHeader" class="hidden text-right text-xs text-slate-300 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+        <div>Name: <span id="headerStudentName" class="font-bold text-amber-300"></span></div>
+        <div>ID: <span id="headerStudentID" class="font-bold text-sky-300"></span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow max-w-4xl w-full mx-auto p-4 md:p-6 flex flex-col justify-center">
+
+    <!-- STEP 1: REGISTRATION & MODE SELECTOR -->
+    <section id="registrationSection" class="bg-slate-800/90 border border-slate-700 rounded-2xl p-6 md:p-8 shadow-2xl">
+      <h2 class="text-2xl font-bold text-white mb-2 text-center">Student Registration & Test Gate</h2>
+      <p class="text-slate-400 text-xs md:text-sm text-center mb-6">
+        Please register your credentials to enter the clinical English assessment. Complete the Pre-Test to unlock the Post-Test.
+      </p>
+
+      <form id="regForm" class="space-y-4 max-w-md mx-auto">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Full Name</label>
+          <input type="text" id="studentName" required placeholder="e.g., Nurse Maria Santos" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-sm focus:border-teal-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Student / Employee ID</label>
+          <input type="text" id="studentID" required placeholder="e.g., NURS-2026-889" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-sm focus:border-teal-400 outline-none">
+        </div>
+
+        <div class="pt-4 space-y-3">
+          <button type="button" id="startPreTestBtn" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-black p-4 rounded-xl text-lg shadow-lg transition flex items-center justify-center gap-2">
+            🚀 Begin Pre-Test (50 Items)
+          </button>
+          
+          <div class="relative flex py-1 items-center">
+            <div class="flex-grow border-t border-slate-700"></div>
+            <span class="flex-shrink mx-4 text-xs text-slate-500 uppercase font-bold">Progression Lock</span>
+            <div class="flex-grow border-t border-slate-700"></div>
+          </div>
+
+          <button type="button" id="startPostTestBtn" disabled class="w-full bg-slate-700 text-slate-400 cursor-not-allowed font-bold p-4 rounded-xl text-lg transition flex items-center justify-center gap-2 border border-slate-600">
+            🔒 Post-Test (100 Items - Locked)
+          </button>
+          <p id="lockMsg" class="text-center text-xs text-amber-400/90 font-medium">⚠️ Post-test unlocks automatically upon completing the pre-test.</p>
+        </div>
+      </form>
+    </section>
+
+    <!-- STEP 2: TEST RUNNER (ONE ITEM PER SCREEN) -->
+    <section id="testRunnerSection" class="hidden bg-slate-800/90 border border-slate-700 rounded-2xl p-6 md:p-8 shadow-2xl relative">
+      
+      <!-- PROGRESS BAR -->
+      <div class="mb-4">
+        <div class="flex justify-between items-center text-xs font-bold mb-1">
+          <span id="testTitleBadge" class="text-teal-400 uppercase tracking-wider">Pre-Test Assessment</span>
+          <span id="questionCounter" class="text-amber-300">Question 1 of 50</span>
+        </div>
+        <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-700">
+          <div id="progressBar" class="bg-gradient-to-r from-teal-400 to-emerald-400 h-full w-0 transition-all duration-300"></div>
+        </div>
+      </div>
+
+      <!-- ITEM CATEGORY & AUDIO SPEECH BADGE -->
+      <div class="flex items-center justify-between mb-3">
+        <span id="itemCategoryBadge" class="bg-amber-900/80 text-amber-300 text-xs font-bold px-3 py-1 rounded-full border border-amber-500/40 uppercase">
+          Category
+        </span>
+        <button id="replayPromptAudioBtn" class="bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/50 px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1">
+          👨🔊 Replay Prompt (Male)
+        </button>
+      </div>
+
+      <!-- VISUAL DESCRIPTION -->
+      <div id="itemVisual" class="italic text-xs text-slate-400 mb-4 bg-slate-900/60 p-3 rounded-lg border-l-4 border-teal-500">
+        "Visual description..."
+      </div>
+
+      <!-- PROMPT TEXT -->
+      <div class="mb-6">
+        <h3 class="text-xs uppercase font-extrabold text-slate-400 tracking-wider mb-1">Clinical Scenario / Prompt:</h3>
+        <div id="itemPrompt" class="text-base md:text-lg font-bold text-white bg-slate-950 p-4 rounded-xl border border-slate-700/80 text-teal-200">
+          "Question prompt text..."
+        </div>
+      </div>
+
+      <!-- OPTIONS LIST (CLICK TO HEAR FEMALE VOICE) -->
+      <div class="mb-6">
+        <p class="text-xs text-slate-400 mb-2 font-semibold">Select the best answer (Click 👩🔊 icon or option text to hear female pronunciation):</p>
+        <div id="optionsContainer" class="space-y-3">
+          <!-- Options rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="flex justify-end pt-2 border-t border-slate-700">
+        <button id="nextQuestionBtn" disabled class="bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-black px-8 py-3 rounded-xl shadow-lg transition opacity-50 cursor-not-allowed">
+          Next Question ➔
+        </button>
+      </div>
+    </section>
+
+    <!-- STEP 3: RESULTS & RATIONALE REVIEW -->
+    <section id="resultsSection" class="hidden bg-slate-800/90 border border-slate-700 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
+      <div class="text-center bg-slate-900/80 p-6 rounded-2xl border border-slate-700">
+        <h2 id="resultTestTitle" class="text-2xl font-black text-teal-400 uppercase tracking-wide">Assessment Result</h2>
+        <div class="text-5xl font-black my-3" id="scorePercentage">0%</div>
+        <p class="text-sm text-slate-300" id="scoreSummaryText">You scored 0 out of 50 items.</p>
+        <div id="passBadge" class="mt-3 inline-block px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-wider"></div>
+      </div>
+
+      <div>
+        <h3 class="text-lg font-bold text-white mb-3">Comprehensive Item Review & Clinical Rationales</h3>
+        <div id="rationalesContainer" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+          <!-- Rationales rendered dynamically -->
+        </div>
+      </div>
+
+      <div class="flex justify-center pt-2">
+        <button id="returnHomeBtn" class="bg-teal-500 hover:bg-teal-400 text-slate-950 font-black px-8 py-3 rounded-xl shadow-lg transition">
+          Return to Dashboard
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="bg-slate-950 border-t border-slate-800 p-4 text-center text-xs text-slate-500">
+    <p>Spoken English for Nursing Care Plan Training System • Assessment Engine</p>
+    <p class="mt-1">Content & Pedagogical Framework © Giyono Asfarrasyid</p>
+  </footer>
+
+  <script>
+    // --- TEXT TO SPEECH (TTS) ENGINE ---
+    class DualVoiceTTS {
+      constructor() {
+        this.synth = window.speechSynthesis;
+        this.voices = [];
+        this.initVoices();
+      }
+      initVoices() {
+        if (!this.synth) return;
+        const load = () => { this.voices = this.synth.getVoices(); };
+        load();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+          speechSynthesis.onvoiceschanged = load;
+        }
+      }
+      getVoice(gender) {
+        if (!this.voices || this.voices.length === 0) return null;
+        const en = this.voices.filter(v => v.lang.startsWith('en'));
+        if (gender === 'male') {
+          return en.find(v => v.name.includes('Male') || v.name.includes('David') || v.name.includes('George')) || en[0];
+        } else {
+          return en.find(v => v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Samantha') || v.name.includes('Hazel')) || en[1] || en[0];
+        }
+      }
+      speak(text, gender = 'female') {
+        if (!this.synth) return;
+        this.synth.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US';
+        u.rate = 0.9;
+        const voice = this.getVoice(gender);
+        if (voice) u.voice = voice;
+        u.pitch = (gender === 'male') ? 0.85 : 1.25;
+        this.synth.speak(u);
+      }
+    }
+
+    const tts = new DualVoiceTTS();
+
+    // --- QUESTION GENERATOR (50 PRE-TEST & 100 POST-TEST) ---
+    const generateQuestionBank = (count, modeName) => {
+      const templates = [
+        {
+          cat: "Module 1: Intake & Assessment",
+          vis: "Patient sitting up in bed holding abdomen.",
+          prompt: "What is the formal clinical term for a patient describing 'heavy chest pressure radiating down the left arm'?",
+          opts: ["Retrosternal chest tightness with radiation to left arm", "Acute bilateral lower extremity edema", "Superficial abdominal wall abrasion", "Gastrointestinal hypermotility"],
+          ans: 0,
+          rat: "Retrosternal chest tightness with radiation to the arm accurately translates cardiac pressure complaints into formal clinical documentation."
+        },
+        {
+          cat: "Module 2: Vital Signs & Reporting",
+          vis: "Electronic monitor showing HR 128 bpm and BP 82/50 mmHg.",
+          prompt: "How should a nurse formally report a heart rate of 128 bpm and BP of 82/50 mmHg to the supervisor?",
+          opts: ["Patient is in sinus bradycardia with hypertension", "Patient exhibits acute sinus tachycardia with severe hypotension", "Patient is normotensive with resting respiratory depression", "Patient demonstrates transient febrile recovery"],
+          ans: 1,
+          rat: "A heart rate above 100 bpm is tachycardia and systolic BP below 90 mmHg is hypotension."
+        },
+        {
+          cat: "Module 3: Nursing Care Planning",
+          vis: "Nurse listening to lungs with rhonchi present.",
+          prompt: "Which NANDA diagnosis fits a patient who 'cannot clear thick phlegm from their chest'?",
+          opts: ["Impaired Tissue Perfusion", "Ineffective Airway Clearance related to retained secretions", "Risk for Deficient Fluid Volume", "Acute Urinary Retention"],
+          ans: 1,
+          rat: "Ineffective Airway Clearance applies when secretions block the tracheobronchial tree."
+        },
+        {
+          cat: "Module 4: ISBAR Physician Consult",
+          vis: "Nurse on phone with doctor regarding surgical site bleeding.",
+          prompt: "In ISBAR reporting, which phrase best communicates a saturated dressing with bright red blood?",
+          opts: ["Patient has minor clear serous fluid", "Patient is experiencing active surgical site hemorrhage with saturated dressing", "Surgical wound exhibits complete epithelial closure", "Patient requests routine oral hygiene"],
+          ans: 1,
+          rat: "Active hemorrhage and saturated dressing precisely summarize acute surgical site bleeding."
+        },
+        {
+          cat: "Module 5: Medication Safety",
+          vis: "Patient declining antihypertensive medication.",
+          prompt: "What is the proper informal-to-formal documentation phrase when a patient says 'I don't want my pill'?",
+          opts: ["Medication error due to wrong route", "Documented patient medication refusal", "Adverse drug reaction event", "Pharmacy dispensation delay"],
+          ans: 1,
+          rat: "Declining a prescribed dose is formally documented as medication refusal."
+        },
+        {
+          cat: "Module 9: Pediatric Care",
+          vis: "Infant in mother's arms running a 39.0°C fever.",
+          prompt: "What is the reassuring informal equivalent when explaining a pediatric fever sticker to a parent?",
+          opts: ["We must perform an immediate surgical debridement", "I'm popping a cool little temperature sticker under his arm—no ouchies at all!", "He requires emergency hemodialysis right now", "We are transferring him to isolation for C. diff"],
+          ans: 1,
+          rat: "Friendly, non-threatening phrasing alleviates parental and pediatric anxiety."
+        },
+        {
+          cat: "Module 10: Critical Care Escalation",
+          vis: "ICU monitor displaying cardiac flatline rhythm.",
+          prompt: "Which urgent call phrase is used when a patient stops breathing and has no carotid pulse?",
+          opts: ["Initiate routine physical therapy", "Call a Code Blue / Rapid Response immediately for cardiopulmonary arrest!", "Request non-urgent dietary consultation", "Schedule outpatient follow-up"],
+          ans: 1,
+          rat: "Code Blue signals immediate cardiopulmonary resuscitation for absent pulse and breathing."
+        }
+      ];
+
+      const bank = [];
+      for (let i = 0; i < count; i++) {
+        const tpl = templates[i % templates.length];
+        bank.push({
+          id: i + 1,
+          category: `${tpl.cat} (${modeName})`,
+          visual: tpl.vis,
+          prompt: `[Item ${i + 1}] ${tpl.prompt}`,
+          options: tpl.opts,
+          correct: tpl.ans,
+          rationale: tpl.rat
+        });
+      }
+      return bank;
+    };
+
+    // --- STATE MANAGEMENT ---
+    let studentData = { name: "", id: "" };
+    let preTestCompleted = false;
+    let currentTestMode = ""; // 'pre' or 'post'
+    let currentQuestions = [];
+    let currentItemIndex = 0;
+    let userAnswers = [];
+    let selectedOptionIndex = null;
+
+    // --- DOM ELEMENTS ---
+    const registrationSection = document.getElementById('registrationSection');
+    const testRunnerSection = document.getElementById('testRunnerSection');
+    const resultsSection = document.getElementById('resultsSection');
+    const userInfoHeader = document.getElementById('userInfoHeader');
+    const headerStudentName = document.getElementById('headerStudentName');
+    const headerStudentID = document.getElementById('headerStudentID');
+    const startPreTestBtn = document.getElementById('startPreTestBtn');
+    const startPostTestBtn = document.getElementById('startPostTestBtn');
+    const lockMsg = document.getElementById('lockMsg');
+    const studentNameInput = document.getElementById('studentName');
+    const studentIDInput = document.getElementById('studentID');
+
+    const testTitleBadge = document.getElementById('testTitleBadge');
+    const questionCounter = document.getElementById('questionCounter');
+    const progressBar = document.getElementById('progressBar');
+    const itemCategoryBadge = document.getElementById('itemCategoryBadge');
+    const itemVisual = document.getElementById('itemVisual');
+    const itemPrompt = document.getElementById('itemPrompt');
+    const optionsContainer = document.getElementById('optionsContainer');
+    const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+    const replayPromptAudioBtn = document.getElementById('replayPromptAudioBtn');
+
+    const resultTestTitle = document.getElementById('resultTestTitle');
+    const scorePercentage = document.getElementById('scorePercentage');
+    const scoreSummaryText = document.getElementById('scoreSummaryText');
+    const passBadge = document.getElementById('passBadge');
+    const rationalesContainer = document.getElementById('rationalesContainer');
+    const returnHomeBtn = document.getElementById('returnHomeBtn');
+
+    // --- START ASSESSMENT ---
+    const startAssessment = (mode) => {
+      const name = studentNameInput.value.trim();
+      const id = studentIDInput.value.trim();
+
+      if (!name || !id) {
+        alert("Please enter both Name and Student ID before starting.");
+        return;
+      }
+
+      studentData = { name, id };
+      headerStudentName.textContent = name;
+      headerStudentID.textContent = id;
+      userInfoHeader.classList.remove('hidden');
+
+      currentTestMode = mode;
+      const count = (mode === 'pre') ? 50 : 100;
+      currentQuestions = generateQuestionBank(count, mode === 'pre' ? 'Pre-Test' : 'Post-Test');
+      currentItemIndex = 0;
+      userAnswers = [];
+
+      registrationSection.classList.add('hidden');
+      resultsSection.classList.add('hidden');
+      testRunnerSection.classList.remove('hidden');
+
+      loadItem(currentItemIndex);
+    };
+
+    startPreTestBtn.addEventListener('click', () => startAssessment('pre'));
+    startPostTestBtn.addEventListener('click', () => {
+      if (preTestCompleted) startAssessment('post');
+    });
+
+    // --- LOAD SINGLE QUESTION ---
+    const loadItem = (index) => {
+      selectedOptionIndex = null;
+      nextQuestionBtn.disabled = true;
+      nextQuestionBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+      const item = currentQuestions[index];
+      const total = currentQuestions.length;
+
+      testTitleBadge.textContent = currentTestMode === 'pre' ? "Pre-Test Assessment (50 Items)" : "Post-Test Assessment (100 Items)";
+      questionCounter.textContent = `Question ${index + 1} of ${total}`;
+      progressBar.style.width = `${((index + 1) / total) * 100}%`;
+
+      itemCategoryBadge.textContent = item.category;
+      itemVisual.textContent = `📷 Setting: ${item.visual}`;
+      itemPrompt.textContent = item.prompt;
+
+      // Auto Speak Scenario Prompt with Male Voice
+      tts.speak(item.prompt, 'male');
+
+      // Render Options
+      optionsContainer.innerHTML = '';
+      item.options.forEach((optText, optIdx) => {
+        const optCard = document.createElement('div');
+        optCard.className = `option-card bg-slate-900 border border-slate-700 hover:border-teal-400 p-4 rounded-xl cursor-pointer transition flex items-center justify-between gap-3 text-sm md:text-base select-none`;
+        optCard.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="radio-circle w-5 h-5 rounded-full border-2 border-slate-500 flex items-center justify-center flex-shrink-0">
+              <div class="radio-inner w-2.5 h-2.5 rounded-full bg-teal-400 hidden"></div>
+            </div>
+            <span class="font-medium text-slate-200">${optText}</span>
+          </div>
+          <button class="tts-opt-btn bg-slate-800 hover:bg-slate-700 text-teal-300 p-2 rounded-lg border border-slate-600 transition text-xs flex-shrink-0" title="Listen with Female Voice">
+            👩🔊
+          </button>
+        `;
+
+        optCard.addEventListener('click', (e) => {
+          if (!e.target.closest('.tts-opt-btn')) {
+            selectOption(optIdx);
+            tts.speak(optText, 'female');
+          }
+        });
+
+        const ttsBtn = optCard.querySelector('.tts-opt-btn');
+        ttsBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          tts.speak(optText, 'female');
+        });
+
+        optionsContainer.appendChild(optCard);
+      });
+    };
+
+    const selectOption = (optIdx) => {
+      selectedOptionIndex = optIdx;
+      const cards = optionsContainer.querySelectorAll('.option-card');
+      cards.forEach((card, idx) => {
+        const circle = card.querySelector('.radio-circle');
+        const inner = card.querySelector('.radio-inner');
+        if (idx === optIdx) {
+          card.classList.add('border-teal-400', 'bg-teal-950/40');
+          circle.classList.add('border-teal-400');
+          inner.classList.remove('hidden');
+        } else {
+          card.classList.remove('border-teal-400', 'bg-teal-950/40');
+          circle.classList.remove('border-teal-400');
+          inner.classList.add('hidden');
+        }
+      });
+
+      nextQuestionBtn.disabled = false;
+      nextQuestionBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    };
+
+    replayPromptAudioBtn.addEventListener('click', () => {
+      const item = currentQuestions[currentItemIndex];
+      tts.speak(item.prompt, 'male');
+    });
+
+    nextQuestionBtn.addEventListener('click', () => {
+      if (selectedOptionIndex === null) return;
+
+      userAnswers.push(selectedOptionIndex);
+
+      if (currentItemIndex + 1 < currentQuestions.length) {
+        currentItemIndex++;
+        loadItem(currentItemIndex);
+      } else {
+        submitTest();
+      }
+    });
+
+    // --- SUBMIT TEST & SHOW RATIONALES ---
+    const submitTest = () => {
+      testRunnerSection.classList.add('hidden');
+      resultsSection.classList.remove('hidden');
+
+      let correctCount = 0;
+      currentQuestions.forEach((q, idx) => {
+        if (userAnswers[idx] === q.correct) correctCount++;
+      });
+
+      const total = currentQuestions.length;
+      const pct = Math.round((correctCount / total) * 100);
+
+      resultTestTitle.textContent = `${currentTestMode === 'pre' ? 'Pre-Test' : 'Post-Test'} Results`;
+      scorePercentage.textContent = `${pct}%`;
+      scoreSummaryText.textContent = `Student: ${studentData.name} (${studentData.id}) | Scored ${correctCount} out of ${total} items.`;
+
+      if (pct >= 75) {
+        passBadge.className = "mt-3 inline-block px-4 py-1.5 rounded-full font-bold text-xs uppercase bg-emerald-900/80 text-emerald-300 border border-emerald-500/50";
+        passBadge.textContent = "PASSED - COMPETENT REGISTER MASTERY";
+        if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      } else {
+        passBadge.className = "mt-3 inline-block px-4 py-1.5 rounded-full font-bold text-xs uppercase bg-rose-900/80 text-rose-300 border border-rose-500/50";
+        passBadge.textContent = "NEEDS REVISION - REVIEW CLINICAL RATIONALES";
+      }
+
+      // Render Rationales
+      rationalesContainer.innerHTML = '';
+      currentQuestions.forEach((q, idx) => {
+        const uAns = userAnswers[idx];
+        const isCorrect = uAns === q.correct;
+
+        const ratCard = document.createElement('div');
+        ratCard.className = `p-4 rounded-xl border ${isCorrect ? 'bg-emerald-950/30 border-emerald-700/60' : 'bg-rose-950/30 border-rose-700/60'}`;
+        ratCard.innerHTML = `
+          <div class="flex items-center justify-between text-xs font-bold mb-1">
+            <span class="${isCorrect ? 'text-emerald-400' : 'text-rose-400'}">Item ${idx + 1}: ${isCorrect ? '✓ Correct' : '✗ Incorrect'}</span>
+            <span class="text-slate-400">${q.category}</span>
+          </div>
+          <p class="text-sm font-semibold text-white mb-2">${q.prompt}</p>
+          <div class="text-xs space-y-1 mb-2">
+            <div class="${isCorrect ? 'text-emerald-300' : 'text-rose-300'}">Your Choice: ${q.options[uAns]}</div>
+            <div class="text-teal-300 font-bold">Correct Choice: ${q.options[q.correct]}</div>
+          </div>
+          <div class="text-xs text-slate-300 bg-slate-900/80 p-2 rounded border border-slate-700/60">
+            <strong>Clinical Rationale:</strong> ${q.rationale}
+          </div>
+        `;
+        rationalesContainer.appendChild(ratCard);
+      });
+
+      if (currentTestMode === 'pre') {
+        preTestCompleted = true;
+        startPostTestBtn.disabled = false;
+        startPostTestBtn.classList.remove('bg-slate-700', 'text-slate-400', 'cursor-not-allowed');
+        startPostTestBtn.classList.add('bg-amber-500', 'hover:bg-amber-400', 'text-slate-950', 'cursor-pointer');
+        startPostTestBtn.innerHTML = "🔓 Begin Post-Test (100 Items - Unlocked)";
+        lockMsg.textContent = "🎉 Pre-test completed! You can now launch the 100-item Post-Test.";
+        lockMsg.className = "text-center text-xs text-emerald-400 font-bold";
+      }
+    };
+
+    returnHomeBtn.addEventListener('click', () => {
+      resultsSection.classList.add('hidden');
+      registrationSection.classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>
